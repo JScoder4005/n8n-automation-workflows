@@ -1,0 +1,117 @@
+{
+  "name": "Daily Weather to WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "cityName": "Bengaluru",
+        "units": "metric",
+        "language": "en"
+      },
+      "id": "openweathermap",
+      "name": "OpenWeatherMap",
+      "type": "n8n-nodes-base.openWeatherMap",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "YOUR_OPENWEATHERMAP_CREDENTIAL_ID",
+          "name": "OpenWeatherMap account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const weather = items[0].json;\nconst temp = Math.round(weather.main.temp);\nconst description = weather.weather[0].description;\nconst city = weather.name;\n\nconst message = `Good morning! ☀️\n\nHere is the daily weather for *${city}*:\n\n🌡️ Temperature: *${temp}°C*\n☁️ Condition: *${description}*\n\nHave a great day!`;\n\nreturn [{ json: { message } }];"
+      },
+      "id": "format-message",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "YOUR_RECIPIENT_PHONE_NUMBER",
+        "textBody": "={{ $json.message }}"
+      },
+      "id": "whatsapp",
+      "name": "WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "OpenWeatherMap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenWeatherMap": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

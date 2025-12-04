@@ -1,0 +1,159 @@
+{
+  "name": "Daily Indian Stock Market Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [460, 300],
+      "notes": "Runs at 4 PM IST on weekdays (after market close)"
+    },
+    {
+      "parameters": {
+        "url": "https://www.alphavantage.co/query",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "function",
+                "value": "GLOBAL_QUOTE"
+              },
+              {
+                "name": "symbol",
+                "value": "RELIANCE.BSE"
+              },
+              {
+                "name": "apikey",
+                "value": "YOUR_ALPHAVANTAGE_API_KEY"
+              }
+            ]
+          }
+        }
+      },
+      "id": "get-stock-data",
+      "name": "Get Stock Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/top-headlines",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "country",
+                "value": "in"
+              },
+              {
+                "name": "category",
+                "value": "business"
+              },
+              {
+                "name": "apiKey",
+                "value": "YOUR_NEWSAPI_KEY"
+              }
+            ]
+          }
+        }
+      },
+      "id": "get-market-news",
+      "name": "Get Market News",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format the market report\nconst stockData = $('Get Stock Data').item.json;\nconst newsData = $('Get Market News').item.json;\n\nlet report = `📊 *Daily Market Report*\\n`;\nreport += `📅 ${new Date().toLocaleDateString('en-IN')}\\n\\n`;\n\nreport += `*Market Summary:*\\n`;\nreport += `• Nifty 50: [Add data]\\n`;\nreport += `• Sensex: [Add data]\\n\\n`;\n\nreport += `*Top News:*\\n`;\nif (newsData.articles && newsData.articles.length > 0) {\n  newsData.articles.slice(0, 3).forEach((article, i) => {\n    report += `${i + 1}. ${article.title}\\n`;\n  });\n}\n\nreport += `\\n💡 *Happy Investing!*`;\n\nreturn [{ json: { message: report } }];"
+      },
+      "id": "format-report",
+      "name": "Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 390]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "YOUR_RECIPIENT_PHONE_NUMBER",
+        "textBody": "={{ $json.message }}"
+      },
+      "id": "send-whatsapp",
+      "name": "Send to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1120, 390],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Stock Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Market News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Stock Data": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Market News": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report": {
+      "main": [
+        [
+          {
+            "node": "Send to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

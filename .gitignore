@@ -1,0 +1,15 @@
+# n8n credentials and sensitive data
+.env
+*.env
+credentials.json
+
+# Node modules if you add any
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Personal notes with API keys
+*_PRIVATE*
+*_SECRET*
