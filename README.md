@@ -1,6 +1,20 @@
-# n8n Daily Weather Bot Setup
+# n8n Automation Workflows
 
-This guide will help you set up your daily weather bot using n8n, OpenWeatherMap, and WhatsApp.
+This project contains n8n workflows for automated notifications and market updates.
+
+## Features
+
+### 🌤️ Weather Bot
+- Daily weather updates for your city
+- Delivered via WhatsApp
+- Customizable schedule
+
+### 📊 Stock Market Bot
+- Daily Indian stock market summary
+- Tracks multiple stocks (Reliance, TCS, Infosys, HDFC Bank)
+- Top 3 market news headlines from Economic Times
+- Automated delivery at 4 PM after market close
+- WhatsApp notifications
 
 ## Prerequisites
 
