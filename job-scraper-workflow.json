@@ -1,0 +1,123 @@
+{
+  "name": "Job Scraper - MERN Stack Remote",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9,18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [460, 300],
+      "notes": "Runs at 9 AM and 6 PM daily"
+    },
+    {
+      "parameters": {
+        "url": "https://www.naukri.com/mern-stack-developer-remote-jobs",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "id": "scrape-naukri",
+      "name": "Scrape Naukri",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse HTML and extract job listings\nconst html = $input.first().json.data || $input.first().binary.data.toString();\n\n// Simple regex to extract job cards (this is a basic example)\n// In production, use a proper HTML parser like cheerio\nconst jobPattern = /<article[^>]*class=\"[^\"]*jobTuple[^\"]*\"[^>]*>([\\s\\S]*?)<\\/article>/gi;\nconst titlePattern = /<a[^>]*class=\"[^\"]*title[^\"]*\"[^>]*>([^<]+)<\\/a>/i;\nconst companyPattern = /<a[^>]*class=\"[^\"]*comp-name[^\"]*\"[^>]*>([^<]+)<\\/a>/i;\nconst linkPattern = /<a[^>]*href=\"([^\"]+)\"[^>]*class=\"[^\"]*title[^\"]*\"/i;\n\nconst jobs = [];\nlet match;\n\nwhile ((match = jobPattern.exec(html)) !== null) {\n  const jobHtml = match[1];\n  \n  const titleMatch = titlePattern.exec(jobHtml);\n  const companyMatch = companyPattern.exec(jobHtml);\n  const linkMatch = linkPattern.exec(jobHtml);\n  \n  if (titleMatch && companyMatch) {\n    const title = titleMatch[1].trim();\n    const company = companyMatch[1].trim();\n    const link = linkMatch ? 'https://www.naukri.com' + linkMatch[1] : '';\n    \n    // Filter for MERN stack keywords\n    const keywords = ['react', 'node', 'mongodb', 'express', 'mern', 'javascript', 'remote', 'wfh'];\n    const titleLower = title.toLowerCase();\n    \n    const hasKeyword = keywords.some(kw => titleLower.includes(kw));\n    \n    if (hasKeyword) {\n      jobs.push({\n        title,\n        company,\n        link,\n        source: 'Naukri',\n        scrapedAt: new Date().toISOString()\n      });\n    }\n  }\n}\n\nreturn jobs.map(job => ({ json: job }));"
+      },
+      "id": "parse-jobs",
+      "name": "Parse Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format jobs into WhatsApp message\nconst items = $input.all();\n\nif (items.length === 0) {\n  return [{ json: { message: '📭 No new MERN stack remote jobs found today.' } }];\n}\n\nlet message = `🚀 *New MERN Stack Remote Jobs*\\n`;\nmessage += `📅 ${new Date().toLocaleDateString('en-IN')}\\n\\n`;\nmessage += `Found ${items.length} new job(s):\\n\\n`;\n\nitems.slice(0, 10).forEach((item, i) => {\n  const job = item.json;\n  message += `${i + 1}. *${job.title}*\\n`;\n  message += `   🏢 ${job.company}\\n`;\n  message += `   🔗 ${job.link}\\n\\n`;\n});\n\nif (items.length > 10) {\n  message += `... and ${items.length - 10} more jobs\\n\\n`;\n}\n\nmessage += `💡 *Apply quickly to increase your chances!*`;\n\nreturn [{ json: { message, jobCount: items.length } }];"
+      },
+      "id": "format-notification",
+      "name": "Format Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "YOUR_RECIPIENT_PHONE_NUMBER",
+        "textBody": "={{ $json.message }}"
+      },
+      "id": "send-whatsapp",
+      "name": "Send to WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Scrape Naukri",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Naukri": {
+      "main": [
+        [
+          {
+            "node": "Parse Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Jobs": {
+      "main": [
+        [
+          {
+            "node": "Format Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Notification": {
+      "main": [
+        [
+          {
+            "node": "Send to WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
